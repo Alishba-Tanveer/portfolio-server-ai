@@ -1,64 +1,48 @@
-# Portfolio chat backend
+# Portfolio chat backend (Vercel)
 
-This tiny server is the only thing allowed to hold your OpenAI API key. Your
-static site (GitHub Pages) calls this server; this server calls OpenAI.
-The key never appears in any file that reaches the browser.
+A single serverless function, `api/chat.js`. No server to keep running,
+no sleep/cold-start server process, and Vercel's Hobby plan doesn't ask
+for a card.
 
-## First, deal with the leaked key
+## Deploy
 
-If you were given a key by your friend that got typed into a chat, that
-key is compromised — treat it as public. Your friend should revoke it at
-platform.openai.com/api-keys and generate a new one. You should get your
-**own** key from your **own** OpenAI account (platform.openai.com → API
-keys → Create new secret key) so your usage and billing are separate from
-hers.
-
-## Deploy this to Render (free tier)
-
-1. Push this whole `chat-server` folder to its own GitHub repo (or a
-   subfolder of one — Render lets you set a "root directory").
-2. Go to render.com → sign up/log in → **New → Web Service**.
-3. Connect the repo. Set:
-   - **Root directory:** `chat-server` (if it's a subfolder)
-   - **Build command:** `npm install`
-   - **Start command:** `npm start`
-4. Under **Environment**, add a variable:
+1. Replace the contents of your `portfolio-server-ai` repo with these
+   files (delete the old `index.js`; keep this `api/chat.js` structure).
+2. Commit and push:
+   ```
+   git add -A
+   git commit -m "Switch to Vercel serverless function"
+   git push
+   ```
+3. Go to vercel.com → sign up/log in with GitHub (no card needed for
+   Hobby).
+4. Click **Add New → Project**, select your `portfolio-server-ai` repo,
+   click **Import**.
+5. Before deploying, expand **Environment Variables** and add:
    - Key: `OPENAI_API_KEY`
-   - Value: your real key (starts with `sk-`)
-5. Deploy. Render gives you a URL like
-   `https://your-app-name.onrender.com`.
-6. Test it's alive by visiting that URL in a browser — you should see
-   "Alishba's portfolio chat backend is running."
+   - Value: your real key
+6. Click **Deploy**. Takes about 30-60 seconds.
+7. Once live, Vercel gives you a URL like
+   `https://portfolio-server-ai.vercel.app`. Your chat endpoint is at:
+   ```
+   https://portfolio-server-ai.vercel.app/api/chat
+   ```
 
 ## Connect it to your portfolio
 
-Open `js/chat-widget.js` in your portfolio and find this line near the top:
+In `js/chat-widget.js`, set:
 
 ```js
-const CHAT_API_URL = "PASTE_YOUR_RENDER_URL_HERE/api/chat";
+const CHAT_API_URL = "https://portfolio-server-ai.vercel.app/api/chat";
 ```
 
-Replace it with your real Render URL, e.g.:
-
-```js
-const CHAT_API_URL = "https://your-app-name.onrender.com/api/chat";
-```
-
-Commit and push your portfolio changes. The chat widget will now talk to
-your live backend.
+Commit and push your portfolio. Done.
 
 ## Notes
 
-- **Free Render services sleep after inactivity** — the first message
-  after a quiet period can take 10-30 seconds to respond while it wakes
-  up. The widget shows a "Typing..." indicator the whole time, so this is
-  expected, not a bug.
-- **Locking down CORS:** right now the server accepts requests from any
-  origin (`app.use(cors())`). Once your site is live, tighten this in
-  `index.js` to only your real domain, e.g.:
-  ```js
-  app.use(cors({ origin: "https://alishba-tanveer.github.io" }));
-  ```
-- **Cost:** `gpt-4o-mini` is inexpensive, but it's still metered usage on
-  whoever's API key is configured. Keep an eye on usage at
-  platform.openai.com/usage.
+- No card required on Vercel's Hobby plan for a project like this.
+- Serverless functions "cold start" too (a short delay on the first
+  request after inactivity), same idea as Render's sleep, just usually
+  faster to wake.
+- If you ever want to lock down CORS to just your domain, edit the
+  `Access-Control-Allow-Origin` line in `api/chat.js`.

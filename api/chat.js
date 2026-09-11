@@ -1,26 +1,8 @@
-// Alishba Tanveer — portfolio chat backend
-// This is the ONLY place the OpenAI API key should ever exist. It is read
-// from an environment variable, never written in code, never committed to
-// git, and never sent to the browser.
+// Alishba Tanveer — portfolio chat backend (Vercel serverless function)
+// This is the ONLY place the OpenAI API key should ever exist. It's read
+// from an environment variable set in the Vercel dashboard, never written
+// in code, never committed to git, never sent to the browser.
 
-const express = require("express");
-const cors = require("cors");
-
-const app = express();
-app.use(cors()); // for production, restrict this to your real site's origin — see note below
-app.use(express.json());
-
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-if (!OPENAI_API_KEY) {
-  console.warn(
-    "WARNING: OPENAI_API_KEY is not set. Set it in your host's environment " +
-    "variables (Render → your service → Environment). The /api/chat route " +
-    "will return an error until this is configured."
-  );
-}
-
-// A short system prompt so the assistant can talk about Alishba accurately.
-// Edit this freely — it's the only "personality" config the bot has.
 const SYSTEM_PROMPT = `You are Alishba's portfolio assistant. You answer
 questions from visitors about Alishba Tanveer, a full-stack developer.
 
@@ -44,13 +26,29 @@ asked something unrelated to Alishba or her work, politely redirect back
 to what you can help with. Never invent facts you don't have — if you're
 unsure, say so and suggest the visitor use the contact page.`;
 
-app.post("/api/chat", async (req, res) => {
+export default async function handler(req, res) {
+  // CORS — allow your portfolio to call this from the browser.
+  // Once your site is live, replace "*" with your real domain for safety,
+  // e.g. "https://alishba-tanveer.github.io"
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
   try {
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
     if (!OPENAI_API_KEY) {
       return res.status(500).json({ error: "Server is not configured with an API key yet." });
     }
 
-    const { message, history } = req.body;
+    const { message, history } = req.body || {};
     if (!message || typeof message !== "string") {
       return res.status(400).json({ error: "Missing 'message' in request body." });
     }
@@ -83,14 +81,9 @@ app.post("/api/chat", async (req, res) => {
 
     const data = await response.json();
     const reply = data.choices?.[0]?.message?.content?.trim() || "Sorry, I didn't get that.";
-    res.json({ reply });
+    res.status(200).json({ reply });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong." });
   }
-});
-
-app.get("/", (_req, res) => res.send("Alishba's portfolio chat backend is running."));
-
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Chat backend listening on port ${PORT}`));
+}
