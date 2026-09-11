@@ -1,0 +1,16 @@
+{
+  "name": "alishba-portfolio-chat-backend",
+  "version": "1.0.0",
+  "description": "Secure proxy that keeps the OpenAI API key server-side for the portfolio chat widget.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5"
+  }
+}
